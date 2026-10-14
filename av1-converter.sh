@@ -4,7 +4,10 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-THREADS=16
+THREADS_DEFAULT="$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || printf 16)"
+[[ "$THREADS_DEFAULT" =~ ^[0-9]+$ ]] || THREADS_DEFAULT=16
+(( THREADS_DEFAULT >= 1 && THREADS_DEFAULT <= 256 )) || THREADS_DEFAULT=16
+THREADS="$THREADS_DEFAULT"
 OUTDIR="converted"
 mkdir -p "$OUTDIR"
 
@@ -23,8 +26,8 @@ choose() {
 
 need ffmpeg
 need ffprobe
-printf '\n🎞️  CHIRU AV1 CONVERTER | CPU only | %s threads\n' "$THREADS"
-printf 'Nada de NVENC, VAAPI ou MediaCodec: decodificação e codificação por software.\n\n'
+printf '\n🎞️  CHIRU AV1 CONVERTER | CPU only | %s threads detectadas\n' "$THREADS"
+printf 'Nada de NVENC, VAAPI ou MediaCodec: decodificação e codificação por software.\nPreset padrão ultrafast para priorizar velocidade; use todos os núcleos detectados como padrão.\n\n'
 
 if (( $# > 0 )); then INPUT="$1"; else read -r -p "Caminho do vídeo de entrada: " INPUT; fi
 [[ -f "$INPUT" ]] || die "Arquivo não encontrado: $INPUT"
@@ -44,8 +47,8 @@ OUTNAME="${OUTNAME//\//_}"
 printf '\nCodec de vídeo:\n  1) H.264 / AVC (libx264, maior compatibilidade)\n  2) H.265 / HEVC (libx265, geralmente menor arquivo)\n'
 VCODEC="$(choose 'Escolha' 1)"
 case "$VCODEC" in
-  1) VENC=libx264; VEXT=mkv; DEFAULT_CRF=23; DEFAULT_PRESET=medium ;;
-  2) VENC=libx265; VEXT=mkv; DEFAULT_CRF=28; DEFAULT_PRESET=medium ;;
+  1) VENC=libx264; VEXT=mkv; DEFAULT_CRF=23; DEFAULT_PRESET=ultrafast ;;
+  2) VENC=libx265; VEXT=mkv; DEFAULT_CRF=28; DEFAULT_PRESET=ultrafast ;;
   *) die "Opção de codec inválida." ;;
 esac
 
@@ -55,7 +58,7 @@ CRF="$(ask 'CRF' "$DEFAULT_CRF")"
 [[ "$CRF" =~ ^[0-9]+$ ]] || die "CRF precisa ser número inteiro."
 if [[ "$VENC" == libx264 ]]; then (( CRF <= 51 )) || die "CRF do x264 deve ficar entre 0 e 51."; else (( CRF <= 51 )) || die "CRF do x265 deve ficar entre 0 e 51."; fi
 
-printf '\nPresets: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow\n'
+printf '\nPresets: ultrafast (velocidade máxima), superfast, veryfast, faster, fast, medium, slow, slower, veryslow\n'
 PRESET="$(ask 'Preset' "$DEFAULT_PRESET")"
 case "$PRESET" in ultrafast|superfast|veryfast|faster|fast|medium|slow|slower|veryslow) ;; *) die "Preset inválido." ;; esac
 
@@ -116,7 +119,7 @@ EXTRA=()
 if [[ -n "$FPS" ]]; then [[ "$FPS" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "FPS inválido."; EXTRA+=(-r "$FPS"); fi
 PIX="$(ask 'Formato de pixel (yuv420p é mais compatível)' 'yuv420p')"
 [[ "$PIX" =~ ^[A-Za-z0-9_]+$ ]] || die "Formato de pixel inválido."
-THREADS_IN="$(choose 'Threads de CPU' 16)"
+THREADS_IN="$(choose 'Threads de CPU' "$THREADS_DEFAULT")"
 (( THREADS_IN >= 1 && THREADS_IN <= 256 )) || die "Escolha de threads deve ficar entre 1 e 256."
 THREADS="$THREADS_IN"
 
