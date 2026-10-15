@@ -4,10 +4,8 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-THREADS_DEFAULT="$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || printf 16)"
-[[ "$THREADS_DEFAULT" =~ ^[0-9]+$ ]] || THREADS_DEFAULT=16
-(( THREADS_DEFAULT >= 1 && THREADS_DEFAULT <= 256 )) || THREADS_DEFAULT=16
-THREADS="$THREADS_DEFAULT"
+THREADS=16
+THREADS_DEFAULT=16
 OUTDIR="converted"
 mkdir -p "$OUTDIR"
 
@@ -119,9 +117,8 @@ EXTRA=()
 if [[ -n "$FPS" ]]; then [[ "$FPS" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "FPS inválido."; EXTRA+=(-r "$FPS"); fi
 PIX="$(ask 'Formato de pixel (yuv420p é mais compatível)' 'yuv420p')"
 [[ "$PIX" =~ ^[A-Za-z0-9_]+$ ]] || die "Formato de pixel inválido."
-THREADS_IN="$(choose 'Threads de CPU' "$THREADS_DEFAULT")"
-(( THREADS_IN >= 1 && THREADS_IN <= 256 )) || die "Escolha de threads deve ficar entre 1 e 256."
-THREADS="$THREADS_IN"
+THREADS=16
+printf "Threads fixas no código: %s\\n" "$THREADS"
 
 OUTPUT="$OUTDIR/$OUTNAME.$VEXT"
 [[ ! -e "$OUTPUT" ]] || { read -r -p "Arquivo já existe. Sobrescrever? [s/N]: " OW; [[ "$OW" =~ ^[sS]$ ]] || die "Cancelado."; }
