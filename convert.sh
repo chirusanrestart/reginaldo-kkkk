@@ -89,7 +89,7 @@ case "$CODEC" in
     fi
     ;;
   av1)
-    if [[ "$ENGINE" != "cpu" ]] && has_encoder av1_mediacodec; then ENCODER=av1_mediacodec
+    if [[ "$ENGINE" == "gpu" ]] && has_encoder av1_mediacodec; then ENCODER=av1_mediacodec
     elif [[ "$ENGINE" == "gpu" ]]; then echo "Encoder AV1 MediaCodec não está disponível nesta build." >&2; exit 3
     elif has_encoder libsvtav1; then ENCODER=libsvtav1
     elif has_encoder libaom-av1; then ENCODER=libaom-av1
