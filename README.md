@@ -1,74 +1,78 @@
-# Chiru AV1 Converter 🎞️
+# Chiru Converter
 
-Script interativo em Bash para converter vídeos usando FFmpeg, com foco em conversão por software de AV1 para H.264 (AVC) ou H.265 (HEVC). Permite ajustar qualidade, preset, resolução, áudio e legendas.
+Conversor de mídia para Termux. O Node.js cuida da interface e validação dos parâmetros; o FFmpeg nativo faz o processamento; o shell detecta os encoders disponíveis e escolhe MediaCodec ou CPU.
 
-## ✨ Funcionalidades
+## Requisitos
 
-- 🎬 Conversão para H.264 ou H.265
-- ⚙️ Ajuste de qualidade por CRF ou bitrate
-- 📐 Opções de resolução, incluindo manter a original
-- 🔊 Opções para copiar, converter ou remover áudio
-- 💬 Opções para preservar ou selecionar legendas
-- 🧾 Exibe informações do arquivo usando FFprobe
-- 📁 Salva os arquivos convertidos na pasta `converted/`
-- 🖥️ Codificação por CPU, sem depender de aceleração por GPU
+- Android com Termux
+- Node.js 18 ou superior
+- FFmpeg instalado e acessível no PATH
 
-## 📋 Requisitos
-
-- Bash
-- FFmpeg com os codificadores `libx264` e/ou `libx265`
-- FFprobe
-- `realpath`
-
-## 🚀 Instalação
-
-Clone o repositório:
+Instalação no Termux:
 
 ```bash
+pkg update
+pkg install nodejs ffmpeg git
 git clone https://github.com/chirusanrestart/reginaldo-kkkk.git
 cd reginaldo-kkkk
-chmod +x av1-converter.sh
+chmod +x ffmpeg.js convert.sh
+npm test
 ```
 
-Instale FFmpeg e FFprobe usando o gerenciador de pacotes do seu sistema. No Termux, por exemplo:
+## Uso
+
+Ver capacidades da build instalada:
 
 ```bash
-pkg install ffmpeg
+node ffmpeg.js --capabilities
 ```
 
-## ▶️ Uso
-
-Execute o script:
+Converter para H.264 em 720p:
 
 ```bash
-./av1-converter.sh
+node ffmpeg.js entrada.mkv saida.mp4 --codec h264 --resolution 720p --bitrate 2500k --audio-bitrate 128k --engine auto
 ```
 
-Também é possível fornecer o caminho do vídeo como argumento:
+Converter para HEVC usando MediaCodec obrigatoriamente:
 
 ```bash
-./av1-converter.sh "/caminho/para/video.mkv"
+node ffmpeg.js entrada.mp4 saida.mp4 --codec hevc --resolution 1080p --bitrate 3M --engine gpu
 ```
 
-O script faz perguntas sobre o nome de saída, codec, qualidade, preset, resolução, áudio e legendas antes de começar a conversão. Os arquivos resultantes são colocados em `converted/`.
+Converter para AV1 usando um encoder de CPU disponível:
 
-## 🎚️ Dicas de qualidade
+```bash
+node ffmpeg.js entrada.mp4 saida.mkv --codec av1 --resolution 720p --bitrate 1500k --engine cpu
+```
 
-- **CRF menor:** geralmente significa maior qualidade e arquivo maior.
-- **CRF maior:** geralmente significa arquivo menor, com mais perda de qualidade.
-- **Preset mais rápido:** reduz o tempo de conversão, mas pode gerar arquivos maiores para uma qualidade semelhante.
-- **H.264:** costuma ter ampla compatibilidade com aparelhos e aplicativos.
-- **H.265:** pode reduzir o tamanho do arquivo, mas depende do suporte do dispositivo de reprodução.
+Remux sem recodificar:
 
-A velocidade depende do processador, da resolução, da duração e das opções escolhidas. A conversão por CPU pode ser demorada em aparelhos modestos.
+```bash
+node ffmpeg.js entrada.mkv saida.mp4 --codec copy
+```
 
-## ⚠️ Observações
+Resoluções aceitas: original, 480p, 720p, 1080p, 1440p, 2160p ou dimensões como 1280x720. O redimensionamento preserva a proporção e evita ampliar vídeos menores.
 
-- Faça uma cópia do vídeo original antes de conversões importantes.
-- Confira se há espaço livre suficiente para os arquivos de saída.
-- O contêiner de saída usado pelo script é MKV.
-- Nem todas as faixas ou formatos de legenda são compatíveis com todas as combinações de codec e contêiner.
+## Aceleração
 
-## 👩‍💻 Projeto
+- `auto`: prefere H.264/HEVC MediaCodec quando o encoder aparece na build; caso contrário usa encoder de CPU.
+- `gpu`: exige encoder MediaCodec compatível.
+- `cpu`: força encoder de CPU.
+- AV1: procura libsvtav1, libaom-av1 ou librav1e. AV1 MediaCodec só será escolhido se a build expuser explicitamente esse encoder.
 
-Ferramenta pessoal desenvolvida por **Chiru-san**.
+A listagem de Vulkan é diagnóstica nesta primeira versão. Ter Vulkan funcional no Android não garante que o FFmpeg tenha filtros Vulkan compilados, nem que o pipeline completo evite cópias entre CPU e GPU. A integração Vulkan será adicionada depois de testar os filtros e a transferência de frames no aparelho.
+
+## Limitações da versão inicial
+
+- A conversão de vídeo usa um encoder selecionado por disponibilidade, não benchmark automático.
+- O áudio é convertido para AAC durante recodificação.
+- O modo `copy` apenas remuxa os streams, sem redimensionar ou alterar bitrate.
+- A disponibilidade e as opções de MediaCodec dependem da build do FFmpeg e do Android.
+
+## Testes
+
+```bash
+npm test
+bash -n convert.sh
+node --check ffmpeg.js
+``
