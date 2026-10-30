@@ -151,6 +151,7 @@ if ! run_conversion; then
     echo
     echo "MediaCodec falhou neste arquivo. Tentando encoder de CPU..."
     rm -f "$OUTPUT"
+    ENCODER=""
     case "$CODEC" in
       h264) has_encoder libx264 && ENCODER=libx264 ;;
       hevc) has_encoder libx265 && ENCODER=libx265 ;;
