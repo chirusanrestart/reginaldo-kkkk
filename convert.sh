@@ -151,11 +151,17 @@ if ! run_conversion; then
     echo
     echo "MediaCodec falhou neste arquivo. Tentando encoder de CPU..."
     rm -f "$OUTPUT"
-    if [[ "$CODEC" == "h264" && $(has_encoder libx264 && echo yes || echo no) == yes ]]; then
-      ENCODER=libx264
-    elif [[ "$CODEC" == "hevc" && $(has_encoder libx265 && echo yes || echo no) == yes ]]; then
-      ENCODER=libx265
-    else
+    case "$CODEC" in
+      h264) has_encoder libx264 && ENCODER=libx264 ;;
+      hevc) has_encoder libx265 && ENCODER=libx265 ;;
+      av1)
+        if has_encoder libsvtav1; then ENCODER=libsvtav1
+        elif has_encoder libaom-av1; then ENCODER=libaom-av1
+        elif has_encoder librav1e; then ENCODER=librav1e
+        fi
+        ;;
+    esac
+    if [[ -z "$ENCODER" ]]; then
       echo "Fallback de CPU indisponível para $CODEC." >&2
       exit 4
     fi
